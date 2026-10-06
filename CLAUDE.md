@@ -130,3 +130,11 @@ aggregate), time-to-accept (median seconds), coverage gap.
   and says not to let them eat the first month.
 - She admits she made fast calls she didn't always check. The risky ones are
   likely in parts nobody has examined, so use fresh eyes early.
+
+Module 2 (6 Oct), from the 4 interviews, `support_tickets` and the `pings` table:
+- **Pings data confirms the loop.** Missed pings waited exactly 92s up to 8 Aug and 62s from 12 Aug. Missed went from 2% to 18% of pings, taken from 77% to 64%, and callouts nobody took from 5.5% to 11%.
+- **Hardest hit:** Vesper, Meteor Mite, The Undertow and Farlight fell from about 9–12 callouts taken a week to about 1. They missed first, then stopped being pinged first (39→3 a week). Nightwell, The Gale, Stormwrack and Vantage each picked up 20–35% more pings. There's no workload cap and no limit setting.
+- **Seasonality doesn't explain it.** Callouts dipped from about 145 to 120 a week, but Mite (0.8/wk) and The Gale (12.9/wk) are both in Eastgate.
+- **Tickets:** 107 of 147 were filed on or after 12 Aug. 45 of those are callout problems (30 "phone never goes off", 15 "gone before I could answer"), all still open. Saved-filter complaints since the release: 12.
+- **Sources barely overlap.** Only Ambrose appears in both the interviews and the tickets. Vesper and Mite (the interviewees' responders) never got a ticket. The interviews were console-UX scoped and never asked about 4.2. 3 of 4 interviewees raised vanishing callouts unprompted.
+- **Still open:** Marcus's 14 Aug question (ask Wen directly), whether to roll back the 60s wait and/or stop misses from lowering rank, and resetting the four responders' rank.
