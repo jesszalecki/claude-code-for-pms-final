@@ -15,7 +15,16 @@ prompt library built from your own questions.
 ---
 
 ### 1.
+i want to understand the user experience since 4.2 was released- can you follow one user's day to day experience from august 12 on and explain to me in plain english
 
 ### 2.
+it sounds like  i need to speak with the engineering team to see what new logic may have been built into the release regarding declined callouts by region
 
 ### 3.
+we know the change from 90 to 60 seconds was intentional based on pryia's handoff document
+
+### 4.
+why did you choose vesper
+
+### 5.
+can you provide a visual timeline of events for vesper during this period?

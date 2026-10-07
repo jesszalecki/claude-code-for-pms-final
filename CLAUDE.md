@@ -138,3 +138,10 @@ Module 2 (6 Oct), from the 4 interviews, `support_tickets` and the `pings` table
 - **Tickets:** 107 of 147 were filed on or after 12 Aug. 45 of those are callout problems (30 "phone never goes off", 15 "gone before I could answer"), all still open. Saved-filter complaints since the release: 12.
 - **Sources barely overlap.** Only Ambrose appears in both the interviews and the tickets. Vesper and Mite (the interviewees' responders) never got a ticket. The interviews were console-UX scoped and never asked about 4.2. 3 of 4 interviewees raised vanishing callouts unprompted.
 - **Still open:** Marcus's 14 Aug question (ask Wen directly), whether to roll back the 60s wait and/or stop misses from lowering rank, and resetting the four responders' rank.
+
+Module 3 (7 Oct), Vesper's timeline (handler Aunt Dot, Old Town) from `pings`/`callouts` plus Dot's 3 Sep interview:
+- **Vesper:** took 11–12 callouts a week before 4.2, then 6, 1, 0, 0. From 18 Aug, 28 Old Town callouts never reached Vesper (mostly Nightwell and Captain Vantage took them). Old Town got *busier* (12–14 a week), and Dot never filed a ticket.
+- **Routing code is in the repo** (`00-rook/code/dispatch-routing/`). 4.2 changed only the timeout (90→60s) and weights (proximity 0.45→0.60, acceptance 0.40→0.25). There is no new regional logic.
+- **How the score works (`history.py`):** misses and turn-downs both cost −0.12, a take earns only +0.08. There's one global score per responder, not one per area, so far-away misses hurt rank at home. It never recovers on its own (2019 TODO). The 60s cut was planned (Q3 roadmap), but its interaction with scoring probably wasn't.
+- **Unexplained:** on 14–16 Aug, Vesper ranked behind out-of-area responders on Old Town callouts 41006, 41023 and 41034. Ask Wen, and confirm the repo code matches production.
+- **Next:** trace Meteor Mite (also interviewed) and a winner (Nightwell) to check the pattern holds. Then brief Wen and Marcus: should misses count less, should scores decay, can the four be reset.
