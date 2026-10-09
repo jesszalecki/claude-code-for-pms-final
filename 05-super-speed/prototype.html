@@ -1,0 +1,441 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vesper Ping Prototype</title>
+<style>
+:root {
+  --bg: #F3F1EC; --panel: #FFFFFF; --ink: #1B1F24; --muted: #5E6670; --line: #DAD6CE;
+  --accent: #1F3A5F; --accent-soft: #E6EDF5;
+  --phone-bg: #EDF0F4; --phone-ink: #111827; --phone-muted: #4B5563; --card: #FFFFFF; --card-line: #D5DBE3;
+  --go: #15803D; --go-ink: #FFFFFF; --warn: #B45309; --hot: #C81E1E; --info: #2563EB;
+  --go-tint: #E3F5E9; --warn-tint: #FDF0DC; --hot-tint: #FDE6E6;
+}
+/* Light, high-contrast phone overrides */
+.card { box-shadow: 0 1px 3px rgba(17,24,39,.08); }
+.card.status { background: var(--go-tint); border-color: #B7E1C5; }
+.card.status .eyebrow { color: var(--go); }
+.card.status.back, .card.status.paused { background: var(--warn-tint); border-color: #F1D19C; }
+.card.status.back .eyebrow, .card.status.paused .eyebrow { color: var(--warn); }
+.card.status.missed { background: var(--hot-tint); border-color: #F3B4B4; }
+.card.status.missed .eyebrow { color: var(--hot); }
+.card.status p { color: #1F2937; }
+/* Ping takeover keeps its own dark, vivid palette */
+.ping { --phone-ink: #FFFFFF; --phone-muted: #D1D8E0; --card-line: rgba(255,255,255,.4); --go: #22C55E; --go-ink: #052E16; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --bg: #0D1014; --panel: #161B22; --ink: #E8ECF0; --muted: #98A2AD; --line: #2A313A; --accent: #8DB4E8; --accent-soft: #1C2633; }
+}
+:root[data-theme="dark"] { --bg: #0D1014; --panel: #161B22; --ink: #E8ECF0; --muted: #98A2AD; --line: #2A313A; --accent: #8DB4E8; --accent-soft: #1C2633; }
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+.wrap { max-width: 1040px; margin: 0 auto; padding: 28px 16px 48px; display: flex; gap: 36px; align-items: flex-start; justify-content: center; flex-wrap: wrap; }
+
+/* ---------- Phone ---------- */
+.phone { width: 360px; height: 740px; border-radius: 46px; background: #000; padding: 12px; box-shadow: 0 24px 60px rgba(0,0,0,.25); flex: none; position: relative; }
+.phone.shake1 { animation: shake .5s ease-in-out infinite; }
+.phone.shake2 { animation: shake .22s ease-in-out infinite; }
+@keyframes shake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-2px) rotate(-.3deg); } 75% { transform: translateX(2px) rotate(.3deg); } }
+.screen { width: 100%; height: 100%; border-radius: 36px; overflow: hidden; background: var(--phone-bg); color: var(--phone-ink); position: relative; display: flex; flex-direction: column; }
+.statusbar { display: flex; justify-content: space-between; padding: 12px 24px 4px; font-size: 13px; font-weight: 600; flex: none; position: relative; z-index: 2; }
+.notch { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); width: 96px; height: 26px; background: #000; border-radius: 14px; z-index: 3; }
+.view { flex: 1; display: flex; flex-direction: column; padding: 8px 18px 22px; overflow-y: auto; position: relative; }
+.view::-webkit-scrollbar { display: none; }
+
+.appbar { display: flex; align-items: center; justify-content: space-between; margin: 6px 0 14px; }
+.who { font-size: 22px; font-weight: 700; }
+.area { color: var(--phone-muted); font-size: 13px; }
+.pill { font-size: 12px; font-weight: 700; padding: 5px 10px; border-radius: 99px; display: inline-flex; align-items: center; gap: 6px; }
+.pill .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+button.pill { border: 0; font-family: inherit; cursor: pointer; padding: 7px 12px; font-size: 13px; }
+button.pill:focus-visible { outline: 3px solid var(--info); outline-offset: 2px; }
+.pill .caret { font-size: 10px; margin-left: 2px; opacity: .9; }
+.pill.on { background: var(--go); color: #FFFFFF; }
+.pill.paused { background: var(--warn); color: #FFFFFF; }
+
+.card { background: var(--card); border: 1px solid var(--card-line); border-radius: 18px; padding: 16px; margin-bottom: 12px; }
+.card h3 { margin: 0 0 4px; font-size: 16px; }
+.card p { margin: 0; color: var(--phone-muted); font-size: 14px; }
+.card.status { border-left: 4px solid var(--go); }
+.card.status.back { border-left-color: var(--warn); }
+.card.status.paused { border-left-color: var(--warn); }
+.card.status.missed { border-left-color: var(--hot); }
+.eyebrow { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--phone-muted); font-weight: 700; margin-bottom: 6px; }
+
+.headline { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 2px 0 2px; }
+.card p.normal { margin: 0 0 10px; font-size: 13px; }
+.headline b { font-size: 26px; line-height: 1.1; }
+.verdict { font-size: 13px; font-weight: 700; padding: 5px 10px; border-radius: 99px; }
+.verdict.ok { background: var(--go-tint); color: var(--go); }
+.verdict.low { background: var(--warn); color: #FFFFFF; }
+.why { border-top: 1px solid #F1D19C; border-bottom: 1px solid #F1D19C; padding: 10px 0; margin-bottom: 4px; }
+.why p { margin: 0 0 6px; color: #1F2937; font-size: 14px; }
+.why .btn { margin-top: 6px; padding: 12px; font-size: 15px; }
+.ladder { display: flex; gap: 4px; margin: 12px 0 6px; }
+.ladder span { flex: 1; height: 6px; border-radius: 3px; background: var(--card-line); }
+.ladder span { background: rgba(17,24,39,.12); }
+.ladder span.lit { background: var(--go); }
+.back .ladder span.lit { background: var(--warn); }
+.ladder-labels { display: flex; justify-content: space-between; font-size: 11px; color: var(--phone-muted); }
+
+.list { list-style: none; margin: 0; padding: 0; }
+.list li { display: flex; justify-content: space-between; padding: 9px 0; border-top: 1px solid var(--card-line); font-size: 14px; }
+.list li:first-child { border-top: 0; }
+.list li { align-items: center; }
+.tag { font-size: 12px; font-weight: 700; padding: 3px 9px; border-radius: 99px; color: #FFFFFF; }
+.tag.taken { background: var(--go); } .tag.missed { background: var(--hot); } .tag.down { background: #6B7280; }
+
+.btn { appearance: none; border: 0; border-radius: 16px; padding: 15px 16px; font: inherit; font-weight: 700; font-size: 16px; cursor: pointer; width: 100%; }
+.btn.primary { background: var(--go); color: var(--go-ink); }
+.btn.ghost { background: transparent; color: var(--phone-ink); border: 1px solid var(--card-line); }
+.btn:focus-visible { outline: 3px solid var(--info); outline-offset: 2px; }
+.spacer { flex: 1; }
+.stack > * + * { margin-top: 10px; }
+
+/* Ping takeover */
+.ping { background: radial-gradient(circle at 50% 35%, #2A3A55 0%, #12161C 70%); transition: background .4s; }
+.ping.s2 { background: radial-gradient(circle at 50% 35%, #6B4A12 0%, #1A130A 72%); }
+.ping.s3 { background: radial-gradient(circle at 50% 35%, #7A1E22 0%, #1E0A0B 72%); animation: flash 1s ease-in-out infinite; }
+@keyframes flash { 50% { filter: brightness(1.25); } }
+.ping .view { text-align: center; }
+.ping-head { font-size: 13px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; margin-top: 4px; }
+.ping-title { font-size: 24px; font-weight: 800; margin: 6px 0 2px; }
+.ping-sub { color: var(--phone-muted); font-size: 14px; }
+.ring { position: relative; width: 190px; height: 190px; margin: 18px auto 10px; }
+.ring svg { transform: rotate(-90deg); }
+.ring .num { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.ring .num b { font-size: 58px; line-height: 1; font-variant-numeric: tabular-nums; }
+.ring .num span { font-size: 12px; color: var(--phone-muted); }
+.alert-level { display: inline-flex; gap: 8px; align-items: center; font-size: 13px; font-weight: 700; padding: 6px 12px; border-radius: 99px; background: rgba(255,255,255,.08); margin-bottom: 14px; }
+.chips { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; margin: 4px 0 0; }
+.chip { font-size: 12px; padding: 4px 9px; border-radius: 99px; background: rgba(255,255,255,.1); }
+.ping .btn.primary { font-size: 20px; padding: 20px; }
+.lockhint { font-size: 12px; color: var(--phone-muted); margin-top: 8px; }
+.locktime { font-size: 64px; font-weight: 300; line-height: 1; margin-top: 16px; text-align: center; }
+.lockdate { text-align: center; color: var(--phone-muted); margin-bottom: 14px; }
+
+/* Sheet */
+.pillwrap { position: relative; }
+.menu { position: absolute; right: 0; top: calc(100% + 8px); width: 262px; background: #FFFFFF; border: 1px solid var(--card-line); border-radius: 14px; box-shadow: 0 14px 34px rgba(17,24,39,.22); padding: 6px; z-index: 6; }
+.mi { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; background: none; border: 0; border-radius: 10px; padding: 10px; font: inherit; color: var(--phone-ink); cursor: pointer; }
+.mi:hover, .mi:focus-visible { background: #F1F4F8; outline: none; }
+.mi .mt { flex: 1; }
+.mi b { display: block; font-size: 15px; }
+.mi small { display: block; color: var(--phone-muted); font-size: 12.5px; }
+.sdot { width: 12px; height: 12px; border-radius: 50%; flex: none; }
+.sdot.on { background: var(--go); } .sdot.away { background: var(--warn); }
+.tick { color: var(--info); font-weight: 800; }
+.durations { padding: 2px 10px 10px 32px; }
+.dur { font: inherit; font-size: 13px; font-weight: 600; padding: 6px 10px; border-radius: 99px; border: 1px solid var(--card-line); background: #FFFFFF; color: var(--phone-ink); cursor: pointer; }
+.dur:hover { border-color: var(--warn); }
+.dur.cur { background: var(--warn); border-color: var(--warn); color: #FFFFFF; }
+.custom { margin-top: 10px; }
+.custom label { display: block; font-size: 12.5px; color: var(--phone-muted); margin-bottom: 4px; }
+.custom-row { display: flex; gap: 6px; }
+.custom input { flex: 1; font: inherit; font-size: 15px; padding: 6px 8px; border: 1px solid var(--card-line); border-radius: 10px; color: var(--phone-ink); background: #FFFFFF; }
+.dur.set { background: var(--warn); border-color: var(--warn); color: #FFFFFF; }
+.mfoot { border-top: 1px solid var(--card-line); margin-top: 4px; padding: 8px 10px 4px; font-size: 12px; color: var(--phone-muted); }
+
+.big-icon { width: 76px; height: 76px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 30px auto 16px; font-size: 36px; }
+.center { text-align: center; }
+.center h2 { margin: 0 0 8px; font-size: 22px; }
+.center p { color: var(--phone-muted); margin: 0 auto; max-width: 280px; }
+
+/* ---------- Side panel ---------- */
+.panel { width: 380px; max-width: 100%; }
+.panel h1 { font-size: 24px; margin: 4px 0 6px; }
+.panel .lede { color: var(--muted); margin: 0 0 18px; }
+.scenarios { display: grid; gap: 8px; margin-bottom: 18px; }
+.scn { text-align: left; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 11px 14px; color: var(--ink); font: inherit; cursor: pointer; }
+.scn b { display: block; font-size: 14px; }
+.scn span { color: var(--muted); font-size: 13px; }
+.scn[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); }
+.scn .n { display: inline-block; width: 20px; color: var(--accent); font-weight: 800; }
+.controls { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; font-size: 13px; color: var(--muted); margin-bottom: 18px; }
+.controls label { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
+.note { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px; font-size: 13.5px; }
+.note h4 { margin: 0 0 6px; font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--accent); }
+.note p { margin: 0 0 8px; } .note p:last-child { margin: 0; }
+.note ul { margin: 0; padding-left: 18px; }
+.fixed { margin-top: 12px; font-size: 12.5px; color: var(--muted); }
+
+@media (max-width: 420px) {
+  .wrap { padding-top: 16px; }
+  .phone { width: 100%; height: 700px; border-radius: 36px; padding: 8px; }
+  .screen { border-radius: 30px; }
+}
+@media (prefers-reduced-motion: reduce) { .phone.shake1, .phone.shake2, .ping.s3 { animation: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="phone" id="phone" aria-label="Responder phone app prototype">
+    <div class="screen" id="screen"></div>
+  </div>
+
+  <aside class="panel">
+    <div style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)">Rook Dispatch · Responder app · Prototype</div>
+    <h1>A fair race for Vesper</h1>
+    <p class="lede">Click through what Vesper sees. The ping wait stays at 60 seconds. What changes is how hard a ping is to miss, a way to step away without being penalised, and an honest status when the phone goes quiet.</p>
+
+    <div class="scenarios" id="scenarios">
+      <button class="scn" data-go="home"><b><span class="n">1</span>Vesper is available</b><span>Home screen showing how many callouts are reaching Vesper.</span></button>
+      <button class="scn" data-go="lock"><b><span class="n">2</span>A ping arrives (phone locked)</b><span>Full-screen takeover with alerts that get stronger at 30s and 15s.</span></button>
+      <button class="scn" data-go="missed"><b><span class="n">3</span>Vesper misses one</b><span>What it cost, said plainly, and what to do next time.</span></button>
+      <button class="scn" data-go="quiet"><b><span class="n">4</span>A quiet week</b><span>The phone explains instead of just sitting there.</span></button>
+      <button class="scn" data-go="pause"><b><span class="n">5</span>Set status to Away</b><span>Pause pings so being busy doesn't count as a miss.</span></button>
+    </div>
+
+    <div class="controls">
+      <label><input type="checkbox" id="fast" checked> Demo speed (60s runs in 15s)</label>
+      <label><input type="checkbox" id="sound"> Sound</label>
+    </div>
+
+    <div class="note" id="note"></div>
+    <p class="fixed">Fixed in this prototype: 60s ping wait · Take / Turn down only · no raw scores shown · cover name only (Policy 4.1). Callout details are illustrative.</p>
+  </aside>
+</div>
+
+<script>
+const screen = document.getElementById('screen');
+const phone = document.getElementById('phone');
+const note = document.getElementById('note');
+const fast = document.getElementById('fast');
+const sound = document.getElementById('sound');
+
+const normalHistory = () => [
+  { t: 'Mon 7:12 pm', where: 'Old Town', out: 'taken' },
+  { t: 'Sun 9:48 pm', where: 'Old Town', out: 'taken' },
+  { t: 'Sat 6:30 pm', where: 'Midtown', out: 'down' },
+];
+const state = { standing: 'front', paused: null, history: normalHistory() };
+let timer = null, remaining = 60, view = 'home';
+
+const NOTES = {
+  home: ['What Vesper sees', '<p>One number (pings in the last 7 days) and whether that\'s a normal week for Vesper (normally 10–12), with the pings themselves underneath. Built from data Dispatch already has. No score.</p><p>When it drops, the same card turns amber and says why and when it gets better (see scenario 4).</p><p>Tap the <b>Available</b> badge to change status, like setting a status in Teams.</p>'],
+  lock: ['The ping takeover', '<ul><li>Fills the screen, even when the phone is locked. No unlock needed to answer.</li><li><b>60–31s:</b> normal chime.</li><li><b>30s:</b> louder, with vibration.</li><li><b>15s:</b> loudest, continuous vibration, screen flashes.</li></ul><p>Try <b>Take</b>, <b>Turn down</b>, or just let it run out.</p>'],
+  ping: ['The ping takeover', '<ul><li>Large countdown so Vesper can see how much time is left from across the room.</li><li>Alerts get stronger at 30s and 15s instead of staying the same until the ping is gone.</li></ul><p>Let it run out to see the missed-ping message.</p>'],
+  taken: ['Taken', '<p>Taking a callout puts Vesper straight back to normal.</p>'],
+  down: ['Turned down', '<p>The callout passes straight to the next responder. Turning down still counts against Vesper, as it does today.</p>'],
+  missed: ['After a miss', '<p>Today a miss is silent: the ping disappears and Vesper never learns it cost anything.</p><p>Here Vesper is told what happened, what it costs, exactly how long it lasts, and what to do next time, with a shortcut to pause.</p><p><b>Depends on engineering:</b> misses expire after 3 days, and the "your turn" guarantee asks Vesper first after 3 days without a local ping. 3 days is a placeholder for Wen and Marcus to set. Under today\x27s rules a place only comes back by taking a callout.</p>'],
+  quiet: ['A quiet week', '<p>Today a quiet phone looks the same whether Old Town is quiet or Vesper has slipped down the order.</p><p>Here the card only appears when callouts reaching Vesper drop well below usual. It says Old Town is busy, why fewer are arriving, and the exact date it gets better.</p><p><b>Depends on engineering:</b> "starting tomorrow" is only true with the "your turn" guarantee and miss expiry in place (3 days is a placeholder). Today Vesper could stay stuck for weeks.</p>'],
+  pause: ['Status: Away', '<p>Works like setting a status in Teams: pick Away, then the time pings come back on. A choice Vesper makes, not a penalty. While paused Vesper isn\'t pinged, so nothing can be missed.</p><p><b>Dependency:</b> pausing writes to the Responder Availability Record, which Supply reads. Supply must sign off.</p>'],
+  paused: ['Away', '<p>Clear about when pings resume. Tap the <b>Away</b> badge to switch back to Available or change how long.</p>'],
+};
+
+/* ---------- sound ---------- */
+let ctx;
+function beep(level) {
+  if (!sound.checked) return;
+  try {
+    ctx = ctx || new (window.AudioContext || window.webkitAudioContext)();
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.frequency.value = [660, 880, 1040][level - 1];
+    g.gain.value = [0.05, 0.12, 0.22][level - 1];
+    o.connect(g); g.connect(ctx.destination); o.start(); o.stop(ctx.currentTime + 0.18);
+  } catch (e) {}
+  if (level > 1 && navigator.vibrate) navigator.vibrate(level === 3 ? [300, 100, 300] : 200);
+}
+
+/* ---------- helpers ---------- */
+const clock = () => '8:42';
+function frame(inner, cls = '') {
+  screen.className = 'screen ' + cls;
+  screen.innerHTML = `<div class="notch"></div><div class="statusbar"><span>${clock()}</span><span>5G ▮▮▮</span></div><div class="view">${inner}</div>`;
+}
+function on(sel, fn) { const el = screen.querySelector(sel); if (el) el.addEventListener('click', fn); }
+function stopTimer() { clearInterval(timer); timer = null; phone.className = 'phone'; }
+function setNote(key) {
+  const [h, b] = NOTES[key] || NOTES.home;
+  note.innerHTML = `<h4>${h}</h4>${b}`;
+  const map = { home: 'home', lock: 'lock', ping: 'lock', taken: 'lock', down: 'lock', missed: 'missed', quiet: 'quiet', pause: 'pause', paused: 'pause' };
+  document.querySelectorAll('.scn').forEach(b => b.setAttribute('aria-pressed', b.dataset.go === map[key]));
+}
+
+function standingCard() {
+  if (state.paused) return `<div class="card status paused"><div class="eyebrow">Away · pings paused</div><h3>Back on at ${state.paused}</h3><p>You won't be pinged until then, so nothing counts as missed.</p></div>`;
+  return '';
+}
+function historyCard() {
+  const label = { taken: 'Taken', missed: 'Missed', down: 'Turned down' };
+  const low = state.standing === 'back';
+  const count = low ? 3 : 11;
+  const verdict = low
+    ? `<span class="verdict low">Lower than normal</span>`
+    : `<span class="verdict ok">✓ Normal week</span>`;
+  const why = low ? `<div class="why">
+      <p><b>Why so few?</b> Old Town is busy (13 callouts), but you missed 3 pings, so others nearby are asked first.</p>
+      <p><b>What happens next:</b> starting tomorrow you'll get your normal 10–12 pings a week again, as long as you don't miss another.</p>
+      <p><b>Want it sooner?</b> If a ping comes in today, taking it fixes this straight away.</p>
+      <button class="btn primary" id="pauseFromCard">Pause pings when you're away</button>
+    </div>` : '';
+  return `<div class="card ${low ? 'status back' : ''}">
+    <div class="eyebrow">Last 7 days</div>
+    <div class="headline"><b>${count} pings</b>${verdict}</div>
+    <p class="normal">You normally get 10–12 a week.</p>
+    ${why}
+    <div class="eyebrow" style="margin-top:6px">Latest</div>
+    <ul class="list">${state.history.slice(0, 4).map(h =>
+      `<li><span>${h.t} · ${h.where}</span><span class="tag ${h.out}">${label[h.out]}</span></li>`).join('')}</ul>
+  </div>`;
+}
+
+/* ---------- screens ---------- */
+function home(extraTop = '') {
+  stopTimer(); view = 'home';
+  frame(`
+    <div class="appbar"><div><div class="who">Vesper</div><div class="area">Old Town · Handler: Aunt Dot</div></div>
+      <div class="pillwrap"><button class="pill ${state.paused ? 'paused' : 'on'}" id="statusPill" aria-haspopup="menu" aria-expanded="false" aria-label="Status: ${state.paused ? 'Away' : 'Available'}. Tap to change"><span class="dot"></span>${state.paused ? 'Away' : 'Available'}<span class="caret">▾</span></button></div></div>
+    ${extraTop}${standingCard()}${historyCard()}
+  `);
+  on('#statusPill', () => statusMenu());
+  on('#dismiss', () => render('home'));
+  on('#pauseFromCard', () => statusMenu(true));
+}
+
+function lock() {
+  startPing(true);
+}
+
+function startPing(locked) {
+  stopTimer(); view = 'ping'; remaining = 60;
+  const draw = () => {
+    const s = remaining > 30 ? 1 : remaining > 15 ? 2 : 3;
+    const lvl = ['', '🔔 Chime', '🔊 Louder · vibrating', '🚨 Loudest · continuous vibration'][s];
+    const C = 2 * Math.PI * 84, off = C * (1 - remaining / 60);
+    const col = ['', '#6CA8FF', '#F2A93B', '#E5484D'][s];
+    frame(`
+      ${locked ? `<div class="locktime">${clock()}</div><div class="lockdate">Thursday 8 October</div>` : ''}
+      <div class="ping-head" style="color:${col}">New callout · Old Town</div>
+      <div class="ping-title">Structural collapse</div>
+      <div class="ping-sub">Harbour Lane warehouse · about 7 min away</div>
+      <div class="chips"><span class="chip">Needs: structural-entry</span><span class="chip">Callout 41231</span></div>
+      <div class="ring"><svg width="190" height="190"><circle cx="95" cy="95" r="84" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="12"/>
+        <circle cx="95" cy="95" r="84" fill="none" stroke="${col}" stroke-width="12" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${off}"/></svg>
+        <div class="num"><b>${remaining}</b><span>seconds left</span></div></div>
+      <div><span class="alert-level">${lvl}</span></div>
+      <div class="spacer"></div>
+      <div class="stack"><button class="btn primary" id="take">Take</button><button class="btn ghost" id="down">Turn down</button></div>
+      ${locked ? '<div class="lockhint">Answer from the lock screen. No unlock needed.</div>' : ''}
+    `, 'ping s' + s);
+    phone.className = 'phone' + (s === 2 ? ' shake1' : s === 3 ? ' shake2' : '');
+    on('#take', () => outcome('taken')); on('#down', () => outcome('down'));
+  };
+  draw(); beep(1);
+  timer = setInterval(() => {
+    remaining--;
+    if (remaining === 30) beep(2);
+    if (remaining <= 15 && remaining > 0 && remaining % 3 === 0) beep(3);
+    if (remaining <= 0) { outcome('missed'); return; }
+    draw();
+  }, fast.checked ? 250 : 1000);
+  setNote(locked ? 'lock' : 'ping');
+}
+
+function outcome(out) {
+  stopTimer();
+  state.history.unshift({ t: 'Thu 8:42 pm', where: 'Old Town', out });
+  if (out === 'taken') {
+    state.standing = 'front';
+    frame(`<div class="center"><div class="big-icon" style="background:var(--go);color:#FFFFFF">✓</div>
+      <h2>It's yours</h2><p>Callout 41231 · Harbour Lane warehouse. Aunt Dot can see you've taken it.</p></div>
+      <div class="spacer"></div><div class="stack"><button class="btn primary">Start route · 7 min</button><button class="btn ghost" id="back">Back to home</button></div>`);
+    on('#back', () => render('home')); setNote('taken');
+  } else if (out === 'down') {
+    frame(`<div class="center"><div class="big-icon" style="background:#E5E7EB;color:#374151">↪</div>
+      <h2>Passed on</h2><p>Callout 41231 went straight to the next responder, so they get their full 60 seconds.</p></div>
+      <div class="spacer"></div><button class="btn ghost" id="back">Back to home</button>`);
+    on('#back', () => render('home')); setNote('down');
+  } else {
+    missed();
+  }
+}
+
+function missed() {
+  stopTimer(); view = 'missed';
+  if (state.history[0]?.out !== 'missed') state.history.unshift({ t: 'Thu 8:42 pm', where: 'Old Town', out: 'missed' });
+  state.standing = 'mid';
+  home(`<div class="card status missed"><div class="eyebrow">Just now</div>
+    <h3>You missed an Old Town callout</h3>
+    <p>You didn't answer within 60 seconds, so it went to the next responder.</p>
+    <p style="margin-top:6px"><b>What it means:</b> other nearby responders will be asked before you, so fewer Old Town callouts may reach you.</p>
+    <p style="margin-top:6px"><b>For how long:</b> until you take your next callout, or 3 days without another miss (that's Sunday).</p>
+    <p style="margin-top:6px"><b>Next time you're away:</b> pause pings. A pause never counts as a miss.</p>
+    <div class="stack" style="margin-top:12px"><button class="btn primary" id="pauseFromCard">Pause pings</button><button class="btn ghost" id="dismiss">Got it</button></div></div>`);
+  setNote('missed');
+}
+
+function quiet() {
+  stopTimer(); view = 'quiet';
+  state.paused = null; state.standing = 'back';
+  state.history = [
+    { t: 'Tue 6 Oct', where: 'Old Town', out: 'missed' },
+    { t: 'Mon 5 Oct', where: 'Midtown', out: 'missed' },
+    { t: 'Sat 3 Oct', where: 'Old Town', out: 'missed' },
+    { t: 'Thu 1 Oct', where: 'Old Town', out: 'taken' },
+  ];
+  home();
+  setNote('quiet');
+}
+
+/* Teams-style status menu under the badge */
+function closeMenu() {
+  const m = screen.querySelector('.menu'); if (m) m.remove();
+  const p = screen.querySelector('#statusPill'); if (p) p.setAttribute('aria-expanded', 'false');
+  document.removeEventListener('click', outsideMenu, true);
+}
+function outsideMenu(e) { if (!e.target.closest('.menu') && !e.target.closest('#statusPill')) closeMenu(); }
+function statusMenu(showDurations = !!state.paused) {
+  if (screen.querySelector('.menu') && showDurations === !!state.paused) { closeMenu(); return; }
+  closeMenu();
+  screen.querySelector('.view').scrollTop = 0;
+  const wrap = screen.querySelector('.pillwrap');
+  const m = document.createElement('div');
+  m.className = 'menu'; m.setAttribute('role', 'menu');
+  const tick = on => on ? '<span class="tick">✓</span>' : '';
+  m.innerHTML = `
+    <button class="mi" role="menuitemradio" aria-checked="${!state.paused}" data-act="available">
+      <span class="sdot on"></span><span class="mt"><b>Available</b><small>You'll get pings</small></span>${tick(!state.paused)}</button>
+    <button class="mi" role="menuitemradio" aria-checked="${!!state.paused}" data-act="away">
+      <span class="sdot away"></span><span class="mt"><b>Away</b><small>No pings, so nothing counts as missed</small></span>${tick(!!state.paused)}</button>
+    <div class="durations" ${showDurations ? '' : 'hidden'}>
+      <div class="custom">
+        <label for="untilTime">Turn pings back on at</label>
+        <div class="custom-row"><input type="time" id="untilTime" value="${state.pausedRaw || '21:42'}"><button class="dur set" id="setTime">Set</button></div>
+      </div>
+    </div>
+    <div class="mfoot">Aunt Dot can see your status.</div>`;
+  wrap.appendChild(m);
+  screen.querySelector('#statusPill').setAttribute('aria-expanded', 'true');
+  m.querySelector('[data-act="available"]').addEventListener('click', () => { closeMenu(); state.paused = null; render('home'); });
+  m.querySelector('[data-act="away"]').addEventListener('click', () => { m.querySelector('.durations').hidden = false; });
+  m.querySelector('#setTime').addEventListener('click', () => {
+    const v = m.querySelector('#untilTime').value; if (!v) return;
+    let [h, min] = v.split(':').map(Number);
+    const ap = h >= 12 ? 'pm' : 'am'; h = h % 12 || 12;
+    closeMenu(); state.pausedRaw = v; state.paused = `${h}:${String(min).padStart(2, '0')} ${ap}`; render('paused');
+  });
+  setTimeout(() => document.addEventListener('click', outsideMenu, true));
+  setNote(state.paused ? 'paused' : 'pause');
+}
+
+function render(name) {
+  if (name === 'home') { home(); setNote('home'); }
+  else if (name === 'lock') { state.paused = null; lock(); }
+  else if (name === 'missed') { state.paused = null; missed(); }
+  else if (name === 'quiet') quiet();
+  else if (name === 'pause') { state.paused = null; home(); statusMenu(true); }
+  else if (name === 'paused') { home(); setNote('paused'); }
+}
+
+document.querySelectorAll('.scn').forEach(b => b.addEventListener('click', () => {
+  state.pausedRaw = null;
+  if (b.dataset.go !== 'quiet') { state.standing = 'front'; state.paused = null; state.history = normalHistory(); }
+  render(b.dataset.go);
+}));
+fast.addEventListener('change', () => { if (view === 'ping') startPing(screen.querySelector('.locktime') !== null); });
+render('home');
+</script>
+</body>
+</html>
