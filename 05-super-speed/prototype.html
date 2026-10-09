@@ -220,7 +220,7 @@ const NOTES = {
   down: ['Turned down', '<p>The callout passes straight to the next responder. Turning down still counts against Vesper, as it does today.</p>'],
   missed: ['After a miss', '<p>Today a miss is silent: the ping disappears and Vesper never learns it cost anything.</p><p>Here Vesper is told what happened, what it costs, exactly how long it lasts, and what to do next time, with a shortcut to pause.</p><p><b>Depends on engineering:</b> misses expire after 3 days, and the "your turn" guarantee asks Vesper first after 3 days without a local ping. 3 days is a placeholder for Wen and Marcus to set. Under today\x27s rules a place only comes back by taking a callout.</p>'],
   quiet: ['A quiet week', '<p>Today a quiet phone looks the same whether Old Town is quiet or Vesper has slipped down the order.</p><p>Here the card only appears when callouts reaching Vesper drop well below usual. It says Old Town is busy, why fewer are arriving, and the exact date it gets better.</p><p><b>Depends on engineering:</b> "starting tomorrow" is only true with the "your turn" guarantee and miss expiry in place (3 days is a placeholder). Today Vesper could stay stuck for weeks.</p>'],
-  pause: ['Status: Away', '<p>Works like setting a status in Teams: pick Away, then the time pings come back on. A choice Vesper makes, not a penalty. While paused Vesper isn\'t pinged, so nothing can be missed.</p><p><b>Dependency:</b> pausing writes to the Responder Availability Record, which Supply reads. Supply must sign off.</p>'],
+  pause: ['Status: Away', '<p>Works like setting a status in Teams: tap Away and it\'s set. Optionally turn pings back on automatically in 1 hour or at a time. A choice Vesper makes, not a penalty. While paused Vesper isn\'t pinged, so nothing can be missed.</p><p><b>Dependency:</b> pausing writes to the Responder Availability Record, which Supply reads. Supply must sign off.</p>'],
   paused: ['Away', '<p>Clear about when pings resume. Tap the <b>Away</b> badge to switch back to Available or change how long.</p>'],
 };
 
@@ -254,7 +254,7 @@ function setNote(key) {
 }
 
 function standingCard() {
-  if (state.paused) return `<div class="card status paused"><div class="eyebrow">Away · pings paused</div><h3>Back on at ${state.paused}</h3><p>You won't be pinged until then, so nothing counts as missed.</p></div>`;
+  if (state.paused) return `<div class="card status paused"><div class="eyebrow">Away · pings paused</div><h3>${state.paused === 'manual' ? 'Until you switch back to Available' : 'Back on at ' + state.paused}</h3><p>You won't be pinged ${state.paused === 'manual' ? 'while you\'re away' : 'until then'}, so nothing counts as missed.</p></div>`;
   return '';
 }
 function historyCard() {
@@ -291,7 +291,7 @@ function home(extraTop = '') {
   `);
   on('#statusPill', () => statusMenu());
   on('#dismiss', () => render('home'));
-  on('#pauseFromCard', () => statusMenu(true));
+  on('#pauseFromCard', setAway);
 }
 
 function lock() {
@@ -380,6 +380,12 @@ function quiet() {
 }
 
 /* Teams-style status menu under the badge */
+// Tapping Away sets it straight away (until switched back), then leaves the
+// menu open so an automatic end time can be added if wanted.
+function setAway() {
+  closeMenu(); state.paused = 'manual'; state.pausedRaw = null; state.oneHour = false;
+  render('paused'); statusMenu(true);
+}
 function closeMenu() {
   const m = screen.querySelector('.menu'); if (m) m.remove();
   const p = screen.querySelector('#statusPill'); if (p) p.setAttribute('aria-expanded', 'false');
@@ -401,7 +407,9 @@ function statusMenu(showDurations = !!state.paused) {
       <span class="sdot away"></span><span class="mt"><b>Away</b><small>No pings, so nothing counts as missed</small></span>${tick(!!state.paused)}</button>
     <div class="durations" ${showDurations ? '' : 'hidden'}>
       <div class="custom">
-        <label for="untilTime">Turn pings back on at</label>
+        <label>Turn pings back on automatically (optional)</label>
+        <button class="dur ${state.oneHour ? 'cur' : ''}" id="oneHour">In 1 hour</button>
+        <label for="untilTime" style="margin-top:10px">Or at a time</label>
         <div class="custom-row"><input type="time" id="untilTime" value="${state.pausedRaw || '21:42'}"><button class="dur set" id="setTime">Set</button></div>
       </div>
     </div>
@@ -409,12 +417,18 @@ function statusMenu(showDurations = !!state.paused) {
   wrap.appendChild(m);
   screen.querySelector('#statusPill').setAttribute('aria-expanded', 'true');
   m.querySelector('[data-act="available"]').addEventListener('click', () => { closeMenu(); state.paused = null; render('home'); });
-  m.querySelector('[data-act="away"]').addEventListener('click', () => { m.querySelector('.durations').hidden = false; });
+  m.querySelector('[data-act="away"]').addEventListener('click', () => {
+    if (state.paused) { m.querySelector('.durations').hidden = false; return; }
+    setAway();
+  });
+  m.querySelector('#oneHour').addEventListener('click', () => {
+    closeMenu(); state.oneHour = true; state.pausedRaw = '21:42'; state.paused = '9:42 pm'; render('paused');
+  });
   m.querySelector('#setTime').addEventListener('click', () => {
     const v = m.querySelector('#untilTime').value; if (!v) return;
     let [h, min] = v.split(':').map(Number);
     const ap = h >= 12 ? 'pm' : 'am'; h = h % 12 || 12;
-    closeMenu(); state.pausedRaw = v; state.paused = `${h}:${String(min).padStart(2, '0')} ${ap}`; render('paused');
+    closeMenu(); state.oneHour = false; state.pausedRaw = v; state.paused = `${h}:${String(min).padStart(2, '0')} ${ap}`; render('paused');
   });
   setTimeout(() => document.addEventListener('click', outsideMenu, true));
   setNote(state.paused ? 'paused' : 'pause');
@@ -425,12 +439,12 @@ function render(name) {
   else if (name === 'lock') { state.paused = null; lock(); }
   else if (name === 'missed') { state.paused = null; missed(); }
   else if (name === 'quiet') quiet();
-  else if (name === 'pause') { state.paused = null; home(); statusMenu(true); }
+  else if (name === 'pause') { state.paused = null; home(); statusMenu(false); }
   else if (name === 'paused') { home(); setNote('paused'); }
 }
 
 document.querySelectorAll('.scn').forEach(b => b.addEventListener('click', () => {
-  state.pausedRaw = null;
+  state.pausedRaw = null; state.oneHour = false;
   if (b.dataset.go !== 'quiet') { state.standing = 'front'; state.paused = null; state.history = normalHistory(); }
   render(b.dataset.go);
 }));
