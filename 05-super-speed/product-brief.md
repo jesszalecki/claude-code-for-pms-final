@@ -1,8 +1,9 @@
 # Product brief: A fair race for Vesper
 
 *For Helen Achebe, Director of Product · Draft for discussion · 9 Oct 2026*
+*Owner: Jessica Zalecki, PM, Rook Dispatch*
 
-**Bottom line:** Since 4.2, a few missed pings can push a responder down the line for good. We propose making pings hard to miss *within* the 60-second ping wait, showing responders and handlers what's happening, and fixing the scoring underneath. **Your decision:** approve resetting four responders' scores now.
+**Bottom line:** Since 4.2, a few missed pings can push a responder down the line for good. We propose making pings hard to miss *within* the 60-second ping wait, showing responders and handlers what's happening, letting responders set themselves Away, and fixing the scoring underneath. **Your decision:** approve resetting four responders' scores now.
 
 ## The problem, through Vesper's eyes
 Vesper (Old Town) took 11–12 callouts a week before 4.2. Then it was 6, then 1, then 0. Old Town got busier, but 28 callouts went to Nightwell and Captain Vantage instead. Vesper's handler, Aunt Dot, hears the phone buzz on the kitchen counter and shouts upstairs, and by the time Vesper answers, "it's gone." Then come weeks when the phone just sits there.
@@ -28,7 +29,7 @@ Vesper (Old Town) took 11–12 callouts a week before 4.2. Then it was 6, then 1
 Not changing the 60s ping wait · not reverting the proximity change · handlers can't take pings for responders · no raw scores shown · cover identity untouched.
 
 ## Success looks like
-Vesper back to ~10 Old Town callouts a week · missed pings from 18% to ~2% · acceptance rate from 64% to ~77% · fewer "phone never goes off" tickets.
+Within 4 weeks of the release that ships this: Vesper back to ~10 Old Town callouts a week · missed pings from 18% to ~2% · acceptance rate from 64% to ~77% · callout tickets back to their pre-4.2 weekly level (about a third of the rate since 4.2). *4 weeks is a placeholder. Ravi to confirm the window and the weekly baselines.*
 
 ## Decisions and dependencies
 1. **Helen:** reset the four responders' scores now, ahead of the app work?
