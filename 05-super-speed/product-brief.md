@@ -29,7 +29,7 @@ Vesper (Old Town) took 11–12 callouts a week before 4.2. Then it was 6, then 1
 Not changing the 60s ping wait · not reverting the proximity change · handlers can't take pings for responders · no raw scores shown · cover identity untouched.
 
 ## Success looks like
-Within 4 weeks of the release that ships this: Vesper back to ~10 Old Town callouts a week · missed pings from 18% to ~2% · acceptance rate from 64% to ~77% · callout tickets back to their pre-4.2 weekly level (about a third of the rate since 4.2). *4 weeks is a placeholder. Ravi to confirm the window and the weekly baselines.*
+Within 4 weeks of the release that ships this: Vesper back to ~10 Old Town callouts a week · missed pings from 18% to ~2% · acceptance rate from 64% to ~77% · callout tickets back to their pre-4.2 weekly level (about a third of the rate since 4.2).
 
 ## Decisions and dependencies
 1. **Helen:** reset the four responders' scores now, ahead of the app work?
