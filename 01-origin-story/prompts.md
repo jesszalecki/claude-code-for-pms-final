@@ -23,7 +23,16 @@ prompt library built from your own questions.
 ---
 
 ### 1.
+I just joined Rook Industries as PM for Rook Dispatch. Read everything in 00-rook/company/ and the company notes from the company wiki through the rook-wiki connector and add to the CLAUDE.md at the root of this folder, what you'd need to know to help me do my job here: the products, the people, the vocabulary, where things stand. Leave the session scope block at the top. Keep it under two pages.
 
 ### 2.
+Pull every support ticket from the Rook database. Group them by theme, tell me how many are in each group, split each count into before and after the 4.2 release on 12 August, and quote one line from each group. Then tell me how many distinct people are behind each group, not just how many tickets.
 
 ### 3.
+Check those ticket themes against the pings data. Show missed and taken rates week by week, and pings per week for every responder before vs. after 4.2. Who was hit hardest, and does that match who complained? Tell me what the data can't show.
+
+### 4.
+Read all the customer interviews in the wiki. For each one, tell me what went wrong, how the responder reacted when a ping arrived, what happened next and what the handler thinks caused it. Then tell me specifically where the interviews agree with the tickets and where they contradict them.
+
+### 5.
+What's contradictory or missing across everything in 00-rook — the handoff, the code, the changelog — compared against the wiki and the database? Rank what's most worth acting on.
